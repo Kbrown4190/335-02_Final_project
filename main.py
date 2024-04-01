@@ -10,7 +10,7 @@ import numpy as np
 import seaborn as sns
 from sklearn.pipeline import Pipeline
 
-# Title of the web app
+
 st.title("Early Detection of Heart Disease Based on Underlying Symptoms")
 
 dataset_path = 'Dataset/Heart.csv'
@@ -34,7 +34,7 @@ params["n_estimators"] = st.sidebar.slider("N Estimators", 2, 50)
 def create_pipeline(normalization_method, params):
     if normalization_method == "Z-Score":
         scaler = StandardScaler()
-    else:  # Min Max Scaling
+    else:  
         scaler = MinMaxScaler()
 
     pipeline = Pipeline([
@@ -55,7 +55,7 @@ def train_and_evaluate_model(pipeline, X, y):
 
 
 if st.button("Train Model"):
-    X = df.drop('target', axis=1) 
+    X = df.drop('target', axis=1)
     y = df['target']
     pipeline = create_pipeline(normalization_method, params)
     y_test, predictions = train_and_evaluate_model(pipeline, X, y)
@@ -64,6 +64,8 @@ if st.button("Train Model"):
     recall = recall_score(y_test, predictions)
     f1 = f1_score(y_test, predictions)
     f2 = fbeta_score(y_test, predictions,  beta=2)
+
+   
     conf_matrix = confusion_matrix(y_test, predictions)
     fig, ax = plt.subplots()
     sns.heatmap(conf_matrix, annot=True, fmt="d", cmap="Blues", ax=ax)
@@ -72,10 +74,9 @@ if st.button("Train Model"):
     ax.set_title('Confusion Matrix')
     st.pyplot(fig)
 
-    # Displaying metrics
+
     st.write(f"Accuracy: {accuracy:.2f}")
     st.write(f"Precision: {precision:.2f}")
     st.write(f"Recall: {recall:.2f}")
     st.write(f"F1 Score: {f1:.2f}")
     st.write(f"F2 Score: {f2:.2f}")
-
