@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+from sklearn.decomposition import PCA
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
@@ -11,7 +12,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
 from sklearn.pipeline import Pipeline
-
 
 st.title("Early Detection of Heart Disease Based on Underlying Symptoms")
 
@@ -47,10 +47,54 @@ elif classifier_name == 'Decision Tree':
     params["max_depth"] = st.sidebar.slider("Max Depth", 2, 15)
 
 
+def plot_pca_and_show_eigen(df_selected):
+    if normalization_method == "Z-Score":
+        scaler = StandardScaler()
+    else:
+        scaler = MinMaxScaler()
+
+    df_standardized = scaler.fit_transform(df_selected)
+    pca = PCA(n_components=2)
+    principal_components = pca.fit_transform(df_standardized)
+    explained_variance = pca.explained_variance_ratio_
+
+    eigenvectors = pca.components_
+    eigenvalues = pca.explained_variance_
+    loadings = eigenvectors.T * np.sqrt(eigenvalues)
+
+    loadings_df = pd.DataFrame(loadings, columns=['PC1', 'PC2'], index=df_selected.columns)
+
+    fig, ax = plt.subplots(1, 2, figsize=(16, 6))
+
+    sns.heatmap([explained_variance], annot=True, fmt=".2%", cmap="Blues", ax=ax[0])
+    ax[0].set_title('PCA Explained Variance')
+    ax[0].set_xlabel('Principal Components')
+    ax[0].set_yticklabels([''], rotation=360)
+
+    # PCA scatter plot
+    ax[1].scatter(principal_components[:, 0], principal_components[:, 1], alpha=0.5)
+    ax[1].set_xlabel('Principal Component 1')
+    ax[1].set_ylabel('Principal Component 2')
+    ax[1].set_title('2D PCA Plot')
+    st.pyplot(fig)
+
+    # Display the eigenvalues and eigenvectors
+    st.write("Eigenvalues:", eigenvalues)
+    st.write("Eigenvectors (Loadings):")
+    st.dataframe(loadings_df)
+
+
+if st.sidebar.checkbox('Show PCA'):
+    st.write("PCA Analysis")
+    # Select the features excluding the target
+    attributes = df.drop('target', axis=1).columns
+    plot_pca_and_show_eigen(df[attributes])
+
+
 def create_pipeline(normalization_method, classifier_name, params):
     if normalization_method == "Z-Score":
         scaler = StandardScaler()
-    else: 
+    else:
         scaler = MinMaxScaler()
 
     if classifier_name == 'Random Forest':
@@ -84,15 +128,14 @@ def train_and_evaluate_model(pipeline, X, y):
 if st.button("Train Model"):
     X = df.drop('target', axis=1)
     y = df['target']
-    pipeline = create_pipeline(normalization_method,classifier_name, params)
+    pipeline = create_pipeline(normalization_method, classifier_name, params)
     y_test, predictions = train_and_evaluate_model(pipeline, X, y)
     accuracy = accuracy_score(y_test, predictions)
     precision = precision_score(y_test, predictions)
     recall = recall_score(y_test, predictions)
     f1 = f1_score(y_test, predictions)
-    f2 = fbeta_score(y_test, predictions,  beta=2)
+    f2 = fbeta_score(y_test, predictions, beta=2)
 
-    # Generating and displaying the confusion matrix
     conf_matrix = confusion_matrix(y_test, predictions)
     fig, ax = plt.subplots()
     sns.heatmap(conf_matrix, annot=True, fmt="d", cmap="Blues", ax=ax)
